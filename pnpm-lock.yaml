@@ -34,7 +34,7 @@ importers:
         version: 0.5.48
       openai:
         specifier: ^4.91.1
-        version: 4.91.1(zod@3.24.2)
+        version: 4.94.0(zod@3.24.2)
       winston:
         specifier: ^3.17.0
         version: 3.17.0
@@ -104,7 +104,7 @@ importers:
         version: 6.2.5(@types/node@22.14.1)
       vite-plugin-node:
         specifier: ^5.0.0
-        version: 5.0.0(@swc/core@1.11.16)(vite@6.2.5(@types/node@22.14.1))
+        version: 5.0.0(@swc/core@1.11.21)(vite@6.2.5(@types/node@22.14.1))
 
 packages:
 
@@ -2191,8 +2191,8 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
-  openai@4.91.1:
-    resolution: {integrity: sha512-DbjrR0hIMQFbxz8+3qBsfPJnh3+I/skPgoSlT7f9eiZuhGBUissPQULNgx6gHNkLoZ3uS0uYS6eXPUdtg4nHzw==}
+  openai@4.94.0:
+    resolution: {integrity: sha512-WVmr9HWcwfouLJ7R3UHd2A93ClezTPuJljQxkCYQAL15Sjyt+FBNoqEz5MHSdH/ebQrVyvRhFyn/bvdqtSPyIA==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0
@@ -5232,7 +5232,7 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@4.91.1(zod@3.24.2):
+  openai@4.94.0(zod@3.24.2):
     dependencies:
       '@types/node': 18.19.86
       '@types/node-fetch': 2.6.12
@@ -5744,7 +5744,7 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
 
-  vite-plugin-node@5.0.0(@swc/core@1.11.16)(vite@6.2.5(@types/node@22.14.1)):
+  vite-plugin-node@5.0.0(@swc/core@1.11.21)(vite@6.2.5(@types/node@22.14.1)):
     dependencies:
       '@rollup/pluginutils': 4.2.1
       chalk: 4.1.2
