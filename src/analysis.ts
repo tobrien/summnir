@@ -2,10 +2,10 @@ import { glob } from 'glob';
 import { load as loadYaml } from 'js-yaml';
 import { ChatCompletionMessageParam } from 'openai/resources';
 import { join } from 'path';
-import { getLogger } from './logging';
-import * as Storage from './util/storage';
-import { Config as RunConfig } from './run.d';
 import { DEFAULT_CHARACTER_ENCODING, JOB_CONFIG_FILE, JOB_REQUIRED_FILES, JOB_SYSTEM_PROMPT_FILE, JOB_USER_PROMPT_FILE } from './constants';
+import { getLogger } from './logging';
+import { JobConfig, SummnirConfig } from './types';
+import * as Storage from './util/storage';
 
 interface ContextConfig {
     type: "history" | "static";
@@ -41,7 +41,7 @@ interface OutputConfig {
     pattern: string;
 }
 
-interface Config {
+export interface AnalysisConfig {
     parameters: {
         [key: string]: {
             type: "string" | "number";
@@ -65,8 +65,8 @@ interface Config {
 }
 
 
-interface Inputs {
-    config: Config;
+export interface Inputs {
+    config: AnalysisConfig;
     messages: ChatCompletionMessageParam[];
     contributingFiles: {
         context: string[];
@@ -75,13 +75,16 @@ interface Inputs {
     // Add other configuration options as needed
 }
 
+interface Parameter {
+    type: "string" | "number";
+    value: string | number;
+    description: string;
+    required: boolean;
+    default: string | number;
+}
+
 interface Parameters {
-    [key: string]: {
-        type: "string" | "number";
-        value: string | number;
-        description: string;
-        required: boolean;
-    };
+    [key: string]: Parameter;
 }
 
 interface FileContents {
@@ -140,14 +143,14 @@ const checkDirectory = async (directory: string) => {
     }
 }
 
-const createConfig = async (configPath: string): Promise<Config> => {
+const createConfig = async (configPath: string): Promise<AnalysisConfig> => {
     const logger = getLogger();
     const storage = Storage.create({ log: logger.debug });
 
     // Read and parse YAML config
     const config = loadYaml(
         await storage.readFile(join(configPath, JOB_CONFIG_FILE), DEFAULT_CHARACTER_ENCODING)
-    ) as Config;
+    ) as AnalysisConfig;
 
     // Validate required config properties
     if (!config.model) {
@@ -207,7 +210,7 @@ const createConfig = async (configPath: string): Promise<Config> => {
     return config;
 }
 
-async function generateContext(config: Config, parameters: Parameters, runConfig: RunConfig): Promise<{ contextString: string, contextFiles: string[] }> {
+async function generateContext(config: AnalysisConfig, parameters: Parameters, summnirConfig: SummnirConfig): Promise<{ contextString: string, contextFiles: string[] }> {
     const logger = getLogger();
 
     let contextString = '';
@@ -221,11 +224,11 @@ async function generateContext(config: Config, parameters: Parameters, runConfig
         }
 
         if (isStaticContextConfig(contextConfig)) {
-            const { contextString: newContextString, contextFiles: newContextFiles } = await readStaticContext(contextConfig, runConfig);
+            const { contextString: newContextString, contextFiles: newContextFiles } = await readStaticContext(contextConfig, summnirConfig);
             contextString += newContextString;
             contextFiles.push(...newContextFiles);
         } else if (isHistoryContextConfig(contextConfig)) {
-            const { contextString: newContextString, contextFiles: newContextFiles } = await readHistoricalContext(contextConfig, config, parameters, runConfig);
+            const { contextString: newContextString, contextFiles: newContextFiles } = await readHistoricalContext(contextConfig, config, parameters, summnirConfig);
             contextString += newContextString;
             contextFiles.push(...newContextFiles);
         }
@@ -234,7 +237,7 @@ async function generateContext(config: Config, parameters: Parameters, runConfig
     return { contextString, contextFiles };
 }
 
-async function readHistoricalContext(contextConfig: HistoryContextConfig, config: Config, parameters: Parameters, runConfig: RunConfig): Promise<{ contextString: string, contextFiles: string[] }> {
+async function readHistoricalContext(contextConfig: HistoryContextConfig, config: AnalysisConfig, parameters: Parameters, summnirConfig: SummnirConfig): Promise<{ contextString: string, contextFiles: string[] }> {
     const logger = getLogger();
 
     const historyContextConfig = contextConfig as HistoryContextConfig;
@@ -252,7 +255,7 @@ async function readHistoricalContext(contextConfig: HistoryContextConfig, config
     const month = parameters.month.value as number;
 
     // Determing the location of the source context based on the type of the source config
-    const sourceDirectory = sourceConfig.type === 'activity' ? runConfig.activityDirectory : runConfig.summaryDirectory;
+    const sourceDirectory = sourceConfig.type === 'activity' ? summnirConfig.activityDirectory : summnirConfig.summaryDirectory;
     const sourcePattern = sourceConfig.pattern;
 
     // Get the numbers which may be a parameter reference or a number
@@ -296,7 +299,7 @@ async function readHistoricalContext(contextConfig: HistoryContextConfig, config
 }
 
 /** This function reads the contents of a static context directory and adds it to the context string. */
-async function readStaticContext(contextConfig: StaticContextConfig, runConfig: RunConfig): Promise<{ contextString: string, contextFiles: string[] }> {
+async function readStaticContext(contextConfig: StaticContextConfig, summnirConfig: SummnirConfig): Promise<{ contextString: string, contextFiles: string[] }> {
     const logger = getLogger();
 
     const contextFiles: string[] = [];
@@ -306,7 +309,7 @@ async function readStaticContext(contextConfig: StaticContextConfig, runConfig: 
     logger.debug(`Generating ${contextConfig.name} Context from ${directoryPath} with pattern ${contextConfig.pattern}`);
     try {
         // Read all files in the directory
-        const contents: FileContents = await readFiles(join(runConfig.contextDirectory, directoryPath), contextConfig.pattern);
+        const contents: FileContents = await readFiles(join(summnirConfig.contextDirectory, directoryPath), contextConfig.pattern);
 
         // Add section header for this context directory
         contextString += `\n## ${contextConfig.name} Context\n`;
@@ -323,7 +326,7 @@ async function readStaticContext(contextConfig: StaticContextConfig, runConfig: 
     return { contextString, contextFiles };
 }
 
-async function generateContent(config: Config, parameters: Parameters, runConfig: RunConfig): Promise<{ contentString: string, contentFiles: string[] }> {
+async function generateContent(config: AnalysisConfig, parameters: Parameters, summnirConfig: SummnirConfig): Promise<{ contentString: string, contentFiles: string[] }> {
     const logger = getLogger();
 
     let contentString = '';
@@ -337,9 +340,9 @@ async function generateContent(config: Config, parameters: Parameters, runConfig
         let directoryPath = '';
 
         if (value.type === 'summary') {
-            directoryPath = join(runConfig.summaryDirectory, value.directory || '', year.toString(), month.toString());
+            directoryPath = join(summnirConfig.summaryDirectory, value.directory || '', year.toString(), month.toString());
         } else {
-            directoryPath = join(runConfig.activityDirectory, value.directory || '', year.toString(), month.toString());
+            directoryPath = join(summnirConfig.activityDirectory, value.directory || '', year.toString(), month.toString());
         }
 
         logger.debug(`Generating ${value.name || key} Content from ${directoryPath} with pattern ${value.pattern}`);
@@ -357,30 +360,34 @@ async function generateContent(config: Config, parameters: Parameters, runConfig
     return { contentString, contentFiles };
 }
 
-const createParameters = (config: Config, params: Record<string, string | number>): Parameters => {
+const createParameters = (config: AnalysisConfig, params: Record<string, string | number>): Parameters => {
     const parameters: Parameters = {};
 
     // Check to see if the params has all of the required parameters from the configuration.  If one is missing, throw an error stating which one is missing.
     for (const [key, value] of Object.entries(config.parameters)) {
-        if (value.required && params[key] === undefined) {
+        const parameter = value as Parameter;
+
+        if (parameter.required && params[key] === undefined) {
             throw new Error(`Missing required parameter: ${key}`);
         }
     }
 
     // Iterate through all of the parameters defined in the configuration, and assign either the value from the params object or the default value from the configuration.
     for (const [key, value] of Object.entries(config.parameters)) {
-        parameters[key] = { ...value, value: params[key] === undefined ? value.default : params[key] };
+        const parameter = value as Parameter;
+
+        parameters[key] = { ...parameter, value: params[key] === undefined ? parameter.default : params[key] };
     }
 
     // Return the parameters object.
     return parameters;
 }
 
-export const createInputs = async (analysisName: string, params: Record<string, string | number>, runConfig: RunConfig): Promise<Inputs> => {
+export const createInputs = async (analysisName: string, params: Record<string, string | number>, summnirConfig: SummnirConfig, jobConfig: JobConfig): Promise<Inputs> => {
     const logger = getLogger();
     const storage = Storage.create({ log: logger.debug });
 
-    const configPath = join(runConfig.configDir, analysisName);
+    const configPath = join(summnirConfig.configDirectory, jobConfig.job);
     checkDirectory(configPath);
     const config = await createConfig(configPath);
 
@@ -399,9 +406,9 @@ export const createInputs = async (analysisName: string, params: Record<string, 
         return prompt.replace(new RegExp(`{{parameters.${key}}}`, 'g'), param.value.toString());
     }, userPrompt);
 
-    const { contextString, contextFiles } = await generateContext(config, parameters, runConfig);
+    const { contextString, contextFiles } = await generateContext(config, parameters, summnirConfig);
 
-    const { contentString, contentFiles } = await generateContent(config, parameters, runConfig);
+    const { contentString, contentFiles } = await generateContent(config, parameters, summnirConfig);
 
     // Skip generating content summary if there are no content files
     if (contentFiles.length === 0) {
