@@ -1,39 +1,48 @@
-import { DEFAULT_ACTIVITY_DIR, DEFAULT_CONFIG_DIR, DEFAULT_CONTEXT_DIR, DEFAULT_DEBUG, DEFAULT_DRY_RUN, DEFAULT_MODEL, DEFAULT_SUMMARY_DIR, DEFAULT_TIMEZONE, DEFAULT_VERBOSE } from "./constants";
+import { getLogger } from "./logging";
+import { OpenAI } from "openai";
+import { ChatCompletionMessageParam } from "openai/resources";
+import * as Analysis from "./analysis";
+import { JobConfig, SummnirConfig } from "./types";
+import { AnalysisConfig } from "./analysis";
 
-import { Config } from "./run.d";
+export const runModel = async (
+    analysisConfig: AnalysisConfig,
+    summnirConfig: SummnirConfig,
+    jobConfig: JobConfig,
+    existingMonthlySummary?: any,
+): Promise<{ aiSummary: string, aiUsage: any, monthlySummary: any }> => {
+    const logger = getLogger();
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+    });
+    const monthlySummary = existingMonthlySummary || await Analysis.createInputs(jobConfig.job, {
+        year: jobConfig.year,
+        month: jobConfig.month,
+        historyMonths: jobConfig.historyMonths,
+        summaryMonths: jobConfig.summaryMonths
+    }, summnirConfig, jobConfig);
 
-export const createConfig = (params: {
-    dryRun?: boolean;
-    verbose?: boolean;
-    debug?: boolean;
-    model?: string;
-    timezone?: string;
-    configDir?: string;
-    contextDirectory?: string;
-    activityDirectory?: string;
-    summaryDirectory?: string;
-    summaryType: string;
-    year: number;
-    month: number;
-    historyMonths: number;
-    summaryMonths: number;
-    replace: boolean;
-}): Config => {
-    return {
-        dryRun: params.dryRun ?? DEFAULT_DRY_RUN,
-        verbose: params.verbose ?? DEFAULT_VERBOSE,
-        debug: params.debug ?? DEFAULT_DEBUG,
-        model: params.model ?? DEFAULT_MODEL,
-        timezone: params.timezone ?? DEFAULT_TIMEZONE,
-        configDir: params.configDir ?? DEFAULT_CONFIG_DIR,
-        contextDirectory: params.contextDirectory ?? DEFAULT_CONTEXT_DIR,
-        activityDirectory: params.activityDirectory ?? DEFAULT_ACTIVITY_DIR,
-        summaryDirectory: params.summaryDirectory ?? DEFAULT_SUMMARY_DIR,
-        summaryType: params.summaryType,
-        year: params.year,
-        month: params.month,
-        historyMonths: params.historyMonths,
-        summaryMonths: params.summaryMonths,
-        replace: params.replace,
+    // Check if there's any content to process
+    if (monthlySummary.contributingFiles.content.length === 0) {
+        logger.info(`No content found for ${jobConfig.job} in ${jobConfig.year}-${jobConfig.month}. Skipping generation.`);
+        return {
+            aiSummary: "",
+            aiUsage: null,
+            monthlySummary
+        };
     }
+
+
+    const response = await openai.chat.completions.create({
+        model: analysisConfig.model,
+        messages: monthlySummary.messages as ChatCompletionMessageParam[],
+        temperature: analysisConfig.temperature,
+        max_completion_tokens: analysisConfig.maxCompletionTokens
+    });
+
+    return {
+        aiSummary: response.choices[0].message.content!,
+        aiUsage: response,
+        monthlySummary
+    };
 }

@@ -1,3 +1,5 @@
+import { JobConfig, SummnirConfig } from "types";
+
 export const VERSION = '__VERSION__ (__GIT_BRANCH__/__GIT_COMMIT__ __GIT_TAGS__ __GIT_COMMIT_DATE__) __SYSTEM_INFO__';
 export const PROGRAM_NAME = 'summnir';
 export const DEFAULT_CHARACTER_ENCODING = 'utf-8';
@@ -47,7 +49,6 @@ export const ALLOWED_MODELS: string[] = ['gpt-4o', 'gpt-4o-mini', 'o1-preview', 
 
 export const DEFAULT_OVERRIDES = false;
 
-
 export const JOB_CONFIG_FILE = 'config.yaml';
 export const JOB_SYSTEM_PROMPT_FILE = 'system.md';
 export const JOB_USER_PROMPT_FILE = 'user.md';
@@ -59,4 +60,24 @@ export const DEFAULT_CONTEXT_DIR = `./context`;
 export const DEFAULT_ACTIVITY_DIR = `./activity`;
 export const DEFAULT_SUMMARY_DIR = `./summary`;
 
+export const DEFAULT_REPLACE = false;
 
+export const DEFAULT_HISTORY_MONTHS = 1;
+export const DEFAULT_SUMMARY_MONTHS = 1;
+
+export const SUMMNIR_DEFAULTS: Partial<SummnirConfig> = {
+    configDirectory: DEFAULT_CONFIG_DIR,
+    dryRun: DEFAULT_DRY_RUN,
+    verbose: DEFAULT_VERBOSE,
+    debug: DEFAULT_DEBUG,
+    timezone: DEFAULT_TIMEZONE,
+    contextDirectory: DEFAULT_CONTEXT_DIR,
+    activityDirectory: DEFAULT_ACTIVITY_DIR,
+    summaryDirectory: DEFAULT_SUMMARY_DIR,
+    replace: DEFAULT_REPLACE,
+};
+
+export const JOB_DEFAULTS: Partial<JobConfig> = {
+    historyMonths: DEFAULT_HISTORY_MONTHS,
+    summaryMonths: DEFAULT_SUMMARY_MONTHS,
+};
