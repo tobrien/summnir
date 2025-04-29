@@ -1,6 +1,6 @@
 {
     "name": "@tobrien/summnir",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "It does not explain. It strikes. ⚡",
     "main": "dist/main.js",
     "type": "module",
