@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { JobConfig, SummnirConfig } from '../src/types';
-import { AnalysisConfig } from '../src/analysis';
+import { AnalysisConfig } from '../src/types';
 
 // Mock dependencies before importing the module under test
 const mockGetLogger = jest.fn().mockReturnValue({
@@ -16,7 +16,7 @@ jest.unstable_mockModule('../src/logging', () => ({
     getLogger: mockGetLogger,
 }));
 
-jest.unstable_mockModule('../src/analysis', () => ({
+jest.unstable_mockModule('../src/analysis/inputs', () => ({
     createInputs: mockCreateInputs,
 }));
 

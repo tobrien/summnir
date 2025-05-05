@@ -1,9 +1,9 @@
 import { getLogger } from "./logging";
 import { OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources";
-import * as Analysis from "./analysis";
+import * as Analysis from "./analysis/inputs";
 import { JobConfig, SummnirConfig } from "./types";
-import { AnalysisConfig } from "./analysis";
+import { AnalysisConfig } from "./types";
 
 export const runModel = async (
     analysisConfig: AnalysisConfig,
