@@ -63,7 +63,9 @@ describe('runModel', () => {
 
     it('should call createInputs and OpenAI API, returning the summary', async () => {
         const mockMonthlySummary = {
-            messages: [{ role: 'user', content: 'Test prompt' }],
+            request: {
+                messages: [{ role: 'user', content: 'Test prompt' }],
+            },
             contributingFiles: { content: ['file1.txt'], metadata: {} } // Ensure content is not empty
             // Add other necessary fields
         };
@@ -93,7 +95,7 @@ describe('runModel', () => {
         );
         expect(mockOpenAIChatCompletionsCreate).toHaveBeenCalledWith({
             model: analysisConfig.model,
-            messages: mockMonthlySummary.messages,
+            messages: mockMonthlySummary.request.messages,
             temperature: analysisConfig.temperature,
             max_completion_tokens: analysisConfig.maxCompletionTokens,
         });
@@ -128,7 +130,9 @@ describe('runModel', () => {
 
     it('should use existingMonthlySummary if provided', async () => {
         const existingMonthlySummary = {
-            messages: [{ role: 'user', content: 'Existing prompt' }],
+            request: {
+                messages: [{ role: 'user', content: 'Existing prompt' }],
+            },
             contributingFiles: { content: ['file2.txt'], metadata: {} }, // Ensure content is not empty
             // Add other necessary fields
         };
@@ -146,7 +150,7 @@ describe('runModel', () => {
         expect(mockCreateInputs).not.toHaveBeenCalled();
         expect(mockOpenAIChatCompletionsCreate).toHaveBeenCalledWith({
             model: analysisConfig.model,
-            messages: existingMonthlySummary.messages,
+            messages: existingMonthlySummary.request.messages,
             temperature: analysisConfig.temperature,
             max_completion_tokens: analysisConfig.maxCompletionTokens,
         });

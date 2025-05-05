@@ -35,7 +35,7 @@ export const runModel = async (
 
     const response = await openai.chat.completions.create({
         model: analysisConfig.model,
-        messages: monthlySummary.messages as ChatCompletionMessageParam[],
+        messages: monthlySummary.request.messages as ChatCompletionMessageParam[],
         temperature: analysisConfig.temperature,
         max_completion_tokens: analysisConfig.maxCompletionTokens
     });
