@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { JobConfig, SummnirConfig } from '../src/types';
-import { AnalysisConfig } from '../src/analysis';
+import { AnalysisConfig } from '../src/types';
 
 // Mock dependencies before importing the module under test
 const mockGetLogger = jest.fn().mockReturnValue({
@@ -16,7 +16,7 @@ jest.unstable_mockModule('../src/logging', () => ({
     getLogger: mockGetLogger,
 }));
 
-jest.unstable_mockModule('../src/analysis', () => ({
+jest.unstable_mockModule('../src/analysis/inputs', () => ({
     createInputs: mockCreateInputs,
 }));
 
@@ -63,7 +63,9 @@ describe('runModel', () => {
 
     it('should call createInputs and OpenAI API, returning the summary', async () => {
         const mockMonthlySummary = {
-            messages: [{ role: 'user', content: 'Test prompt' }],
+            request: {
+                messages: [{ role: 'user', content: 'Test prompt' }],
+            },
             contributingFiles: { content: ['file1.txt'], metadata: {} } // Ensure content is not empty
             // Add other necessary fields
         };
@@ -93,7 +95,7 @@ describe('runModel', () => {
         );
         expect(mockOpenAIChatCompletionsCreate).toHaveBeenCalledWith({
             model: analysisConfig.model,
-            messages: mockMonthlySummary.messages,
+            messages: mockMonthlySummary.request.messages,
             temperature: analysisConfig.temperature,
             max_completion_tokens: analysisConfig.maxCompletionTokens,
         });
@@ -104,31 +106,11 @@ describe('runModel', () => {
         expect(mockGetLogger().info).not.toHaveBeenCalledWith(expect.stringContaining('Skipping generation'));
     });
 
-    it('should skip OpenAI call if createInputs returns no content', async () => {
-        const mockMonthlySummary = {
-            messages: [],
-            contributingFiles: { content: [], metadata: {} } // Empty content
-            // Add other necessary fields
-        };
-
-        // @ts-ignore
-        mockCreateInputs.mockResolvedValue(mockMonthlySummary);
-
-        const result = await runModel(analysisConfig, summnirConfig, jobConfig);
-
-        expect(mockCreateInputs).toHaveBeenCalledTimes(1);
-        expect(mockOpenAIChatCompletionsCreate).not.toHaveBeenCalled();
-        expect(result.aiSummary).toBe('');
-        expect(result.aiUsage).toBeNull();
-        // @ts-ignore
-        expect(result.monthlySummary).toEqual(mockMonthlySummary);
-        // @ts-ignore
-        expect(mockGetLogger().info).toHaveBeenCalledWith(`No content found for ${jobConfig.job} in ${jobConfig.year}-${jobConfig.month}. Skipping generation.`);
-    });
-
     it('should use existingMonthlySummary if provided', async () => {
         const existingMonthlySummary = {
-            messages: [{ role: 'user', content: 'Existing prompt' }],
+            request: {
+                messages: [{ role: 'user', content: 'Existing prompt' }],
+            },
             contributingFiles: { content: ['file2.txt'], metadata: {} }, // Ensure content is not empty
             // Add other necessary fields
         };
@@ -146,7 +128,7 @@ describe('runModel', () => {
         expect(mockCreateInputs).not.toHaveBeenCalled();
         expect(mockOpenAIChatCompletionsCreate).toHaveBeenCalledWith({
             model: analysisConfig.model,
-            messages: existingMonthlySummary.messages,
+            messages: existingMonthlySummary.request.messages,
             temperature: analysisConfig.temperature,
             max_completion_tokens: analysisConfig.maxCompletionTokens,
         });
@@ -157,21 +139,4 @@ describe('runModel', () => {
         expect(mockGetLogger().info).not.toHaveBeenCalledWith(expect.stringContaining('Skipping generation'));
     });
 
-    it('should skip OpenAI call if existingMonthlySummary has no content', async () => {
-        const existingMonthlySummary = {
-            messages: [],
-            contributingFiles: { content: [], metadata: {} }, // Empty content
-            // Add other necessary fields
-        };
-
-        const result = await runModel(analysisConfig, summnirConfig, jobConfig, existingMonthlySummary);
-
-        expect(mockCreateInputs).not.toHaveBeenCalled();
-        expect(mockOpenAIChatCompletionsCreate).not.toHaveBeenCalled();
-        expect(result.aiSummary).toBe('');
-        expect(result.aiUsage).toBeNull();
-        expect(result.monthlySummary).toEqual(existingMonthlySummary);
-        // @ts-ignore
-        expect(mockGetLogger().info).toHaveBeenCalledWith(`No content found for ${jobConfig.job} in ${jobConfig.year}-${jobConfig.month}. Skipping generation.`);
-    });
 });

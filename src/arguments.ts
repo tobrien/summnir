@@ -33,6 +33,7 @@ export const configure = async (cabazooka: Cabazooka.Cabazooka, givemetheconfig:
         .version(VERSION);
 
     await cabazooka.configure(program);
+    // TODO: This is a hack, givemetheconfig should not need to return the program
     program = await givemetheconfig.configure(program);
     program.parse();
 

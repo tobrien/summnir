@@ -5,7 +5,7 @@ import { writeOutputFile } from './output';
 import { join } from 'path';
 import { runModel } from './run';
 import { JobConfig, SummnirConfig, SummnirConfigSchema } from './types';
-import * as Analysis from './analysis';
+import * as Analysis from './analysis/inputs';
 import * as Arguments from './arguments';
 import { DEFAULT_CONFIG_DIR, DEFAULT_TIMEZONE, PROGRAM_NAME, VERSION } from './constants';
 import { getLogger, setLogLevel } from './logging';
