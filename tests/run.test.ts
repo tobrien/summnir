@@ -106,28 +106,6 @@ describe('runModel', () => {
         expect(mockGetLogger().info).not.toHaveBeenCalledWith(expect.stringContaining('Skipping generation'));
     });
 
-    it('should skip OpenAI call if createInputs returns no content', async () => {
-        const mockMonthlySummary = {
-            messages: [],
-            contributingFiles: { content: [], metadata: {} } // Empty content
-            // Add other necessary fields
-        };
-
-        // @ts-ignore
-        mockCreateInputs.mockResolvedValue(mockMonthlySummary);
-
-        const result = await runModel(analysisConfig, summnirConfig, jobConfig);
-
-        expect(mockCreateInputs).toHaveBeenCalledTimes(1);
-        expect(mockOpenAIChatCompletionsCreate).not.toHaveBeenCalled();
-        expect(result.aiSummary).toBe('');
-        expect(result.aiUsage).toBeNull();
-        // @ts-ignore
-        expect(result.monthlySummary).toEqual(mockMonthlySummary);
-        // @ts-ignore
-        expect(mockGetLogger().info).toHaveBeenCalledWith(`No content found for ${jobConfig.job} in ${jobConfig.year}-${jobConfig.month}. Skipping generation.`);
-    });
-
     it('should use existingMonthlySummary if provided', async () => {
         const existingMonthlySummary = {
             request: {
@@ -161,21 +139,4 @@ describe('runModel', () => {
         expect(mockGetLogger().info).not.toHaveBeenCalledWith(expect.stringContaining('Skipping generation'));
     });
 
-    it('should skip OpenAI call if existingMonthlySummary has no content', async () => {
-        const existingMonthlySummary = {
-            messages: [],
-            contributingFiles: { content: [], metadata: {} }, // Empty content
-            // Add other necessary fields
-        };
-
-        const result = await runModel(analysisConfig, summnirConfig, jobConfig, existingMonthlySummary);
-
-        expect(mockCreateInputs).not.toHaveBeenCalled();
-        expect(mockOpenAIChatCompletionsCreate).not.toHaveBeenCalled();
-        expect(result.aiSummary).toBe('');
-        expect(result.aiUsage).toBeNull();
-        expect(result.monthlySummary).toEqual(existingMonthlySummary);
-        // @ts-ignore
-        expect(mockGetLogger().info).toHaveBeenCalledWith(`No content found for ${jobConfig.job} in ${jobConfig.year}-${jobConfig.month}. Skipping generation.`);
-    });
 });

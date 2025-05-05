@@ -1,4 +1,3 @@
-import { getLogger } from "./logging";
 import { OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources";
 import * as Analysis from "./analysis/inputs";
@@ -11,7 +10,6 @@ export const runModel = async (
     jobConfig: JobConfig,
     existingMonthlySummary?: any,
 ): Promise<{ aiSummary: string, aiUsage: any, monthlySummary: any }> => {
-    const logger = getLogger();
     const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
     });
@@ -21,17 +19,6 @@ export const runModel = async (
         historyMonths: jobConfig.historyMonths,
         summaryMonths: jobConfig.summaryMonths
     }, summnirConfig, jobConfig);
-
-    // Check if there's any content to process
-    if (monthlySummary.contributingFiles.content.length === 0) {
-        logger.info(`No content found for ${jobConfig.job} in ${jobConfig.year}-${jobConfig.month}. Skipping generation.`);
-        return {
-            aiSummary: "",
-            aiUsage: null,
-            monthlySummary
-        };
-    }
-
 
     const response = await openai.chat.completions.create({
         model: analysisConfig.model,
